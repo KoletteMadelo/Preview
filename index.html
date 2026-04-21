@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Post Simulator</title>
+    <style>
+        :root { --fb-blue: #1877F2; --bg-gray: #f0f2f5; }
+        body { font-family: Helvetica, Arial, sans-serif; background: var(--bg-gray); display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        
+        .controls { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; width: 100%; max-width: 500px; }
+        .controls input, .controls textarea { width: 100%; margin-bottom: 10px; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+        
+        .url-group { display: flex; gap: 5px; margin-bottom: 10px; }
+        .url-group input { margin-bottom: 0; flex-grow: 1; }
+        .preview-btn { background: #42b72a; color: white; border: none; padding: 0 15px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
+        .fb-card { background: white; width: 500px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); overflow: hidden; }
+        .fb-header { padding: 12px; display: flex; align-items: center; }
+        .fb-avatar { width: 40px; height: 40px; background: #ddd; border-radius: 50%; margin-right: 10px; }
+        .fb-user-info { font-weight: bold; font-size: 15px; }
+        .fb-description { padding: 0 12px 12px 12px; font-size: 15px; word-wrap: break-word; min-height: 20px; }
+
+        .image-viewport { width: 100%; height: 260px; background: #e9ebee; position: relative; overflow: hidden; cursor: move; }
+        #preview-img { position: absolute; max-width: none; user-select: none; display: block; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1); }
+
+        .fb-footer { padding: 12px; border-top: 1px solid #ebedf0; background: #f2f3f5; }
+        .fb-title { font-weight: bold; font-size: 16px; margin-bottom: 4px; color: #1d2129; }
+        
+        #finishBtn { background: #1877F2; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        #shareBox { margin-top: 15px; padding: 10px; background: #e7f3ff; border-radius: 6px; display: none; word-break: break-all; }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <h3>Post Editor</h3>
+    <div class="url-group">
+        <input type="text" id="imageUrlInput" placeholder="Paste Image URL here...">
+        <button class="preview-btn" onclick="triggerPreview()">Preview</button>
+    </div>
+    <input type="text" id="titleInput" placeholder="Enter Title (Headline)...">
+    <textarea id="descInput" placeholder="Write a description..." rows="3"></textarea>
+    
+    <div style="display: flex; align-items: center; gap: 10px; margin: 10px 0;">
+        <label>Zoom:</label>
+        <input type="range" id="zoomRange" min="0.1" max="5" step="0.01" value="1" style="flex-grow:1">
+        <button onclick="resetImage()">Reset</button>
+    </div>
+
+    <button id="finishBtn" onclick="generateLink()">FINISH & GET LINK</button>
+    <div id="shareBox"></div>
+</div>
+
+<div class="fb-card">
+    <div class="fb-header">
+        <div class="fb-avatar"></div>
+        <div class="fb-user-info">Your Page Name</div>
+    </div>
+    <div id="displayDesc" class="fb-description">Post text goes here...</div>
+    <div class="image-viewport" id="viewport">
+        <img src="" id="preview-img" alt="">
+    </div>
+    <div class="fb-footer">
+        <div id="displayTitle" class="fb-title">Link Title Headline</div>
+        <div style="color: #606770; font-size: 12px; text-transform: uppercase;">GITHUB.IO</div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const supabaseUrl = 'https://jqecjgwxsemokamqcywn.supabase.co';
+    const supabaseKey = 'sb_publishable_6IbHpLTuMGsvy0sRD6szkg_dLudlQR8';
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+    const imageUrlInput = document.getElementById('imageUrlInput');
+    const previewImg = document.getElementById('preview-img');
+    const titleInput = document.getElementById('titleInput');
+    const descInput = document.getElementById('descInput');
+    const zoomRange = document.getElementById('zoomRange');
+    const viewport = document.getElementById('viewport');
+    const shareBox = document.getElementById('shareBox');
+
+    let scale = 1, posX = 0, posY = 0, isDragging = false, startX, startY;
+
+    window.onload = async () => {
+        const params = new URLSearchParams(window.location.search);
+        const postId = params.get('id');
+        if (postId) {
+            const { data, error } = await supabaseClient.from('Preview').select('*').eq('id', postId).single();
+            if (data) {
+                imageUrlInput.value = data.image_url;
+                titleInput.value = data.title;
+                descInput.value = data.description;
+                updateDisplay();
+                loadImage(data.image_url);
+            }
+        }
+    };
+
+    function updateDisplay() {
+        document.getElementById('displayTitle').innerText = titleInput.value || "Link Title Headline";
+        document.getElementById('displayDesc').innerText = descInput.value || "Post text goes here...";
+    }
+
+    titleInput.oninput = updateDisplay;
+    descInput.oninput = updateDisplay;
+
+    function triggerPreview() {
+        if(imageUrlInput.value.trim() !== "") {
+            loadImage(imageUrlInput.value);
+        } else {
+            alert("Please paste a URL first!");
+        }
+    }
+
+    function loadImage(url) {
+        previewImg.removeAttribute('crossorigin'); 
+        previewImg.src = url;
+        
+        previewImg.onload = function() {
+            const ratio = viewport.offsetHeight / previewImg.naturalHeight;
+            scale = ratio; zoomRange.value = ratio; posX = 0; posY = 0;
+            updateTransform();
+        };
+
+        previewImg.onerror = () => {
+            console.log("Direct load failed, trying bypass...");
+            const connector = url.includes('?') ? '&' : '?';
+            previewImg.src = url + connector + "t=" + new Date().getTime();
+            
+            previewImg.onerror = () => {
+                alert("This host is strictly blocking the image. Please use a direct link from Imgur or Postimages!");
+            };
+        };
+    }
+
+    zoomRange.oninput = () => { scale = zoomRange.value; updateTransform(); };
+    viewport.onmousedown = (e) => { isDragging = true; startX = e.clientX - posX; startY = e.clientY - posY; viewport.style.cursor = 'grabbing'; e.preventDefault(); };
+    window.onmousemove = (e) => { if (!isDragging) return; posX = e.clientX - startX; posY = e.clientY - startY; updateTransform(); };
+    window.onmouseup = () => { isDragging = false; viewport.style.cursor = 'move'; };
+
+    function resetImage() { posX = 0; posY = 0; scale = 1; zoomRange.value = 1; updateTransform(); }
+    function updateTransform() {
+        previewImg.style.transform = `translate(calc(-50% + ${posX}px), calc(-50% + ${posY}px)) scale(${scale})`;
+    }
+
+    async function generateLink() {
+        const btn = document.getElementById('finishBtn');
+        btn.innerText = "Saving...";
+        
+        const { data, error } = await supabaseClient
+            .from('Preview')
+            .insert([{ 
+                title: titleInput.value || "Untitled", 
+                description: descInput.value || "", 
+                image_url: imageUrlInput.value 
+            }])
+            .select();
+
+        if (error) {
+            alert("Save failed: " + error.message);
+            btn.innerText = "FINISH & GET LINK";
+        } else {
+            btn.innerText = "FINISH & GET LINK";
+            const postId = data[0].id;
+            const finalUrl = window.location.origin + window.location.pathname + '?id=' + postId;
+            shareBox.style.display = 'block';
+            shareBox.innerHTML = `<strong>Success! Link Created:</strong><br><input type="text" readonly value="${finalUrl}" style="width:100%; margin-top:5px; padding:5px;" onclick="this.select()">`;
+        }
+    }
+</script>
+</body>
+</html>
+
