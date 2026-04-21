@@ -6,7 +6,7 @@
     <title>Social Media Post Simulator</title>
 
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://kolettemadelo.github.io/fbpreview/">
+    <meta property="og:url" content="https://kolettemadelo.github.io/fbpreview/index.html">
     <meta property="og:title" content="Social Media Post Simulator">
     <meta property="og:description" content="Create and simulate social media posts for your content.">
     <meta property="og:image" content="https://kolettemadelo.github.io/fbpreview/preview-thumbnail.jpg">
@@ -177,8 +177,8 @@
             btn.innerText = "FINISH & GET LINK";
             const postId = data[0].id;
             
-            // FIXED LINE: Now includes /index.html to prevent 404 errors on social media crawlers
-            const finalUrl = window.location.origin + window.location.pathname.replace(/\/$/, "") + "/index.html?id=" + postId;
+            // This line ensures the generated link always points to the correct folder and file
+            const finalUrl = "https://kolettemadelo.github.io/fbpreview/index.html?id=" + postId;
             
             shareBox.style.display = 'block';
             shareBox.innerHTML = `<strong>Success! Link Created:</strong><br><input type="text" readonly value="${finalUrl}" style="width:100%; margin-top:5px; padding:5px;" onclick="this.select()">`;
