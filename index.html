@@ -11,11 +11,6 @@
     <meta property="og:description" content="Create and simulate social media posts for your content.">
     <meta property="og:image" content="https://kolettemadelo.github.io/fbpreview/preview-thumbnail.jpg">
 
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Social Media Post Simulator">
-    <meta name="twitter:description" content="Create and simulate social media posts for your content.">
-    <meta name="twitter:image" content="https://kolettemadelo.github.io/fbpreview/preview-thumbnail.jpg">
-
     <style>
         :root { --fb-blue: #1877F2; --bg-gray: #f0f2f5; }
         body { font-family: Helvetica, Arial, sans-serif; background: var(--bg-gray); display: flex; flex-direction: column; align-items: center; padding: 20px; }
@@ -95,6 +90,7 @@
         if (postId) {
             const { data, error } = await supabaseClient.from('Preview').select('*').eq('id', postId).single();
             if (data) {
+                // Populate inputs and preview
                 imageUrlInput.value = data.image_url;
                 titleInput.value = data.title;
                 descInput.value = data.description;
@@ -128,10 +124,6 @@
             scale = ratio; zoomRange.value = ratio; posX = 0; posY = 0;
             updateTransform();
         };
-        previewImg.onerror = () => {
-            const connector = url.includes('?') ? '&' : '?';
-            previewImg.src = url + connector + "t=" + new Date().getTime();
-        };
     }
 
     zoomRange.oninput = () => { scale = zoomRange.value; updateTransform(); };
@@ -164,7 +156,7 @@
             btn.innerText = "FINISH & GET LINK";
             const postId = data[0].id;
             
-            // REMOVED window.location.pathname TO PREVENT THE 404/Preview ERROR
+            // HARDCODED PATH FIX: Use lowercase repo name and index.html
             const finalUrl = "https://kolettemadelo.github.io/fbpreview/index.html?id=" + postId;
             
             shareBox.style.display = 'block';
