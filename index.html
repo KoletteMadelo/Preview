@@ -176,7 +176,10 @@
         } else {
             btn.innerText = "FINISH & GET LINK";
             const postId = data[0].id;
-            const finalUrl = window.location.origin + window.location.pathname + '?id=' + postId;
+            
+            // FIXED LINE: Now includes /index.html to prevent 404 errors on social media crawlers
+            const finalUrl = window.location.origin + window.location.pathname.replace(/\/$/, "") + "/index.html?id=" + postId;
+            
             shareBox.style.display = 'block';
             shareBox.innerHTML = `<strong>Success! Link Created:</strong><br><input type="text" readonly value="${finalUrl}" style="width:100%; margin-top:5px; padding:5px;" onclick="this.select()">`;
         }
